@@ -249,37 +249,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-lg">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white shrink-0"
+            className="md:hidden p-1.5 sm:p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white shrink-0"
             aria-label="Toggle Navigation Menu"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-black shadow-emerald-500/20 shadow-md shrink-0">
-              <Store className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div className="p-1 sm:p-2 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 font-black shadow-emerald-500/20 shadow-md shrink-0">
+              <Store className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="font-bold text-sm sm:text-base leading-tight text-white tracking-wide truncate max-w-[130px] sm:max-w-[260px] md:max-w-[340px]">
+              <h1 className="font-bold text-xs sm:text-base leading-tight text-white tracking-wide truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[260px] md:max-w-[340px]">
                 {storeName}
               </h1>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate hidden xs:block">AGUNG AI SOFTWARE HOUSE</p>
+              <p className="text-[9px] sm:text-xs text-slate-400 truncate hidden xs:block">AGUNG AI SOFTWARE HOUSE</p>
             </div>
           </div>
         </div>
 
         {/* Branch Switcher & User Profile Dropdown */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-800/80 border border-slate-700/60 rounded-xl px-2 sm:px-3 py-1 sm:py-1.5 text-xs">
-            <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 bg-slate-800/80 border border-slate-700/60 rounded-xl px-1.5 sm:px-3 py-1 sm:py-1.5 text-xs">
+            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
             <span className="text-slate-400 hidden lg:inline">Cabang:</span>
             <select
               value={selectedBranchId}
               onChange={handleBranchChange}
-              className="bg-transparent text-white font-medium focus:outline-none cursor-pointer max-w-[90px] sm:max-w-[180px] truncate"
+              className="bg-transparent text-white font-medium focus:outline-none cursor-pointer max-w-[85px] sm:max-w-[180px] truncate text-[11px] sm:text-xs"
             >
               {branches.map((b) => (
                 <option key={b.id} value={b.id} className="bg-slate-900 text-white">
