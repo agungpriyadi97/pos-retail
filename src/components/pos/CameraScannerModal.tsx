@@ -16,9 +16,10 @@ export default function CameraScannerModal({
   onScanSuccess,
 }: CameraScannerModalProps) {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const isStoppingRef = useRef<boolean>(false);
   const isScanningLockedRef = useRef<boolean>(false);
-  const isReadyToScanRef = useRef<boolean>(false);
+  const isDecodingAllowed = useRef<boolean>(false);
 
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
@@ -47,9 +48,42 @@ export default function CameraScannerModal({
     }
   };
 
+  const killMediaTracks = useCallback(() => {
+    isDecodingAllowed.current = false;
+
+    // 1. Inspect DOM container for video elements and stop MediaStreams
+    const container = document.getElementById('qr-reader');
+    if (container) {
+      const videoElements = container.getElementsByTagName('video');
+      for (let i = 0; i < videoElements.length; i++) {
+        const video = videoElements[i];
+        if (video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          stream.getTracks().forEach((track) => {
+            track.stop();
+            track.enabled = false;
+          });
+          video.srcObject = null;
+        }
+      }
+      container.innerHTML = '';
+    }
+
+    // 2. Stop stored stream reference
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+        track.enabled = false;
+      });
+      streamRef.current = null;
+    }
+  }, []);
+
   const stopScanner = useCallback(async () => {
     if (isStoppingRef.current) return;
     isStoppingRef.current = true;
+    isDecodingAllowed.current = false;
+
     if (html5QrCodeRef.current) {
       try {
         if (html5QrCodeRef.current.isScanning) {
@@ -64,7 +98,10 @@ export default function CameraScannerModal({
         isStoppingRef.current = false;
       }
     }
-  }, []);
+
+    // Always force shutdown hardware camera tracks & blank out container
+    killMediaTracks();
+  }, [killMediaTracks]);
 
   const handleClose = useCallback(async () => {
     await stopScanner();
@@ -76,6 +113,7 @@ export default function CameraScannerModal({
     setPermissionDenied(false);
     setErrorMessage(null);
     isScanningLockedRef.current = false;
+    isDecodingAllowed.current = false;
 
     await stopScanner();
 
@@ -102,8 +140,9 @@ export default function CameraScannerModal({
       };
 
       const handleSuccess = async (decodedText: string) => {
-        if (!isReadyToScanRef.current || isScanningLockedRef.current) return;
+        if (!isDecodingAllowed.current || isScanningLockedRef.current) return;
         isScanningLockedRef.current = true;
+        isDecodingAllowed.current = false;
 
         playBeep();
         await stopScanner();
@@ -138,8 +177,22 @@ export default function CameraScannerModal({
       }
 
       await html5QrCode.start(cameraConfig, config, handleSuccess, handleError);
+
+      // Track active video stream for clean hardware releases
+      const videoEl = document.querySelector('#qr-reader video') as HTMLVideoElement;
+      if (videoEl && videoEl.srcObject) {
+        streamRef.current = videoEl.srcObject as MediaStream;
+      }
+
       setIsScanning(true);
       setIsInitializing(false);
+
+      // Warm-up gate: allow decoding 1000ms after new stream has started
+      setTimeout(() => {
+        if (html5QrCodeRef.current?.isScanning) {
+          isDecodingAllowed.current = true;
+        }
+      }, 1000);
     } catch (err: any) {
       console.error('Failed to start Html5Qrcode scanner:', err);
       const errStr = String(err?.message || err || '');
@@ -156,32 +209,28 @@ export default function CameraScannerModal({
       setIsInitializing(false);
       await stopScanner();
     }
-  }, [onScanSuccess, onClose, stopScanner]);
+  }, [onScanSuccess, onClose, stopScanner, killMediaTracks]);
 
   useEffect(() => {
     if (!isOpen) {
-      isReadyToScanRef.current = false;
+      isDecodingAllowed.current = false;
+      killMediaTracks();
       return;
     }
 
-    isReadyToScanRef.current = false;
-
-    // Warm-up lock for 700ms before enabling scan processing
-    const warmupTimer = setTimeout(() => {
-      isReadyToScanRef.current = true;
-    }, 700);
+    isDecodingAllowed.current = false;
 
     // Small delay to ensure modal DOM rendering
     const initTimer = setTimeout(() => {
       startScanner();
-    }, 150);
+    }, 200);
 
     return () => {
-      clearTimeout(warmupTimer);
       clearTimeout(initTimer);
+      isDecodingAllowed.current = false;
       stopScanner();
     };
-  }, [isOpen, startScanner, stopScanner]);
+  }, [isOpen, startScanner, stopScanner, killMediaTracks]);
 
   if (!isOpen) return null;
 
