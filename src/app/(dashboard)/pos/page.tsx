@@ -210,9 +210,32 @@ export default function PosPage() {
     }
   };
 
+  // Toast notification state
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'error' | 'success' | 'warning';
+  } | null>(null);
+
+  const lastScanTimeRef = React.useRef<number>(0);
+
+  const showToast = (
+    message: string,
+    type: 'error' | 'success' | 'warning' = 'warning'
+  ) => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const addToCart = (product: Product) => {
     if (product.stock <= 0) {
-      alert(`Stok ${product.name} habis di cabang ini.`);
+      showToast(`Stok ${product.name} habis di cabang ini.`, 'error');
       return;
     }
 
@@ -220,7 +243,10 @@ export default function PosPage() {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
         if (existing.quantity + 1 > product.stock) {
-          alert(`Stok tidak mencukupi (Maksimal: ${product.stock})`);
+          showToast(
+            `Stok maksimal produk ${product.name} tercapai (Maks: ${product.stock})`,
+            'warning'
+          );
           return prev;
         }
         return prev.map((item) =>
@@ -229,6 +255,7 @@ export default function PosPage() {
             : item
         );
       }
+      showToast(`1x ${product.name} ditambahkan ke keranjang`, 'success');
       return [...prev, { product, quantity: 1 }];
     });
   };
@@ -240,7 +267,10 @@ export default function PosPage() {
           if (item.product.id === productId) {
             const newQty = item.quantity + delta;
             if (newQty > item.product.stock) {
-              alert(`Stok tidak mencukupi (Maksimal: ${item.product.stock})`);
+              showToast(
+                `Stok maksimal produk ${item.product.name} tercapai (Maks: ${item.product.stock})`,
+                'warning'
+              );
               return item;
             }
             return newQty > 0 ? { ...item, quantity: newQty } : null;
@@ -256,12 +286,20 @@ export default function PosPage() {
   };
 
   const handleScanSuccess = (barcode: string) => {
+    const now = Date.now();
+    if (now - lastScanTimeRef.current < 1000) {
+      return; // Ignore duplicate scan within 1 second cooldown
+    }
+    lastScanTimeRef.current = now;
+
     setSearchQuery(barcode);
     const found = products.find(
       (p) => p.barcode === barcode || p.sku.toLowerCase() === barcode.toLowerCase()
     );
     if (found) {
       addToCart(found);
+    } else {
+      showToast(`Produk dengan barcode ${barcode} tidak ditemukan!`, 'error');
     }
   };
 
@@ -684,6 +722,22 @@ export default function PosPage() {
 
   return (
     <DashboardLayout>
+      {/* Floating Toast Notification Banner */}
+      {toast && (
+        <div
+          className={`fixed top-4 inset-x-4 sm:inset-x-auto sm:right-4 z-[60] p-3.5 px-4 rounded-xl text-xs sm:text-sm font-semibold shadow-2xl flex items-center gap-2.5 transition-all duration-300 border ${
+            toast.type === 'error'
+              ? 'bg-rose-950/95 border-rose-500/50 text-rose-200 shadow-rose-950/50'
+              : toast.type === 'success'
+              ? 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200 shadow-emerald-950/50'
+              : 'bg-amber-950/95 border-amber-500/50 text-amber-200 shadow-amber-950/50'
+          }`}
+        >
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       <div className="flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-6 md:h-[calc(100vh-6rem)] relative">
         {/* Left Column: SKU Search & Product Grid */}
         <div className="w-full md:col-span-7 lg:col-span-7 xl:col-span-8 flex flex-col gap-3 md:gap-4 overflow-hidden pb-20 md:pb-0">

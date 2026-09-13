@@ -17,6 +17,7 @@ export default function CameraScannerModal({
 }: CameraScannerModalProps) {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isStoppingRef = useRef<boolean>(false);
+  const isScanningLockedRef = useRef<boolean>(false);
 
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
@@ -73,6 +74,7 @@ export default function CameraScannerModal({
     setIsInitializing(true);
     setPermissionDenied(false);
     setErrorMessage(null);
+    isScanningLockedRef.current = false;
 
     await stopScanner();
 
@@ -99,9 +101,12 @@ export default function CameraScannerModal({
       };
 
       const handleSuccess = async (decodedText: string) => {
+        if (isScanningLockedRef.current) return;
+        isScanningLockedRef.current = true;
+
         playBeep();
-        onScanSuccess(decodedText);
         await stopScanner();
+        onScanSuccess(decodedText);
         onClose();
       };
 
