@@ -86,7 +86,7 @@ export default function ThermalReceipt({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm">
       {/* Dynamic CSS Print Styles */}
       <style jsx global>{`
         @media print {
@@ -102,12 +102,14 @@ export default function ThermalReceipt({
             left: 0 !important;
             top: 0 !important;
             width: ${paperWidth === '58mm' ? '58mm' : '80mm'} !important;
+            max-width: 100% !important;
             margin: 0 !important;
-            padding: 4mm !important;
+            padding: 3mm !important;
             background: white !important;
             color: black !important;
             font-family: 'Courier New', Courier, monospace !important;
             box-shadow: none !important;
+            border: none !important;
           }
           .no-print {
             display: none !important;
@@ -115,11 +117,11 @@ export default function ThermalReceipt({
         }
       `}</style>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-md max-h-[92vh] flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/80 no-print">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/90 shrink-0 no-print">
+          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs sm:text-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
             <span>Struk Pembayaran Berhasil</span>
           </div>
 
@@ -158,68 +160,71 @@ export default function ThermalReceipt({
         </div>
 
         {/* Printable Receipt Preview Container */}
-        <div className="p-4 overflow-y-auto bg-slate-950 flex justify-center">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex justify-center bg-slate-950/50">
           <div
             id="thermal-receipt-container"
-            style={{ width: paperWidth === '58mm' ? '240px' : '320px' }}
-            className="bg-white text-black p-4 rounded-lg font-mono text-xs shadow-md leading-tight border border-slate-200"
+            className={`bg-white text-slate-900 font-mono text-xs shadow-md rounded-lg p-4 w-full flex flex-col leading-tight border border-slate-200 shrink-0 ${
+              paperWidth === '58mm' ? 'max-w-[300px]' : 'max-w-[380px]'
+            }`}
           >
-            {/* Header Store */}
-            <div className="text-center font-bold text-sm uppercase mb-0.5">
+            {/* 1. Header Store */}
+            <div className="text-center font-bold text-sm uppercase tracking-wide mb-0.5 break-words text-slate-950">
               {storeName}
             </div>
             {transaction.branch?.name && (
-              <div className="text-center font-semibold text-xs text-slate-800 mb-1">
+              <div className="text-center font-semibold text-xs text-slate-800 mb-0.5 break-words">
                 {transaction.branch.name}
               </div>
             )}
             {transaction.branch?.address && (
-              <div className="text-center text-[10px] mb-0.5 text-slate-700">
+              <div className="text-center text-[10px] text-slate-600 mb-0.5 leading-tight break-words">
                 {transaction.branch.address}
               </div>
             )}
             {transaction.branch?.phone && (
-              <div className="text-center text-[10px] mb-2 text-slate-700">
+              <div className="text-center text-[10px] text-slate-600 mb-1 leading-tight">
                 Telp: {transaction.branch.phone}
               </div>
             )}
 
-            <div className="border-b border-dashed border-black my-2"></div>
+            {/* 2. Dashed Divider */}
+            <div className="border-b border-dashed border-slate-400 my-2"></div>
 
-            {/* Meta info */}
+            {/* 3. Meta info */}
             <div className="space-y-0.5 text-[11px]">
               <div className="flex justify-between">
-                <span>No. Inv:</span>
-                <span className="font-bold">{transaction.invoiceNo}</span>
+                <span className="text-slate-600">No. Inv:</span>
+                <span className="font-bold font-mono text-slate-950">{transaction.invoiceNo}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tanggal:</span>
-                <span>{formattedDate}</span>
+                <span className="text-slate-600">Tanggal:</span>
+                <span className="text-slate-900">{formattedDate}</span>
               </div>
               <div className="flex justify-between">
-                <span>Kasir:</span>
-                <span>{transaction.cashier?.fullName || 'Kasir 1'}</span>
+                <span className="text-slate-600">Kasir:</span>
+                <span className="text-slate-900">{transaction.cashier?.fullName || 'Kasir 1'}</span>
               </div>
               {transaction.member && (
-                <div className="flex justify-between font-bold text-emerald-800">
+                <div className="flex justify-between font-semibold text-emerald-800">
                   <span>Member:</span>
                   <span>{transaction.member.fullName}</span>
                 </div>
               )}
             </div>
 
-            <div className="border-b border-dashed border-black my-2"></div>
+            {/* 4. Dashed Divider */}
+            <div className="border-b border-dashed border-slate-400 my-2"></div>
 
-            {/* Items list */}
+            {/* 5. Items list */}
             <div className="space-y-1.5 text-[11px]">
               {transaction.items.map((item, idx) => (
                 <div key={idx} className="flex flex-col">
-                  <span className="font-semibold">{item.product.name}</span>
-                  <div className="flex justify-between text-slate-700">
+                  <span className="font-semibold text-slate-900 break-words">{item.product.name}</span>
+                  <div className="flex justify-between text-slate-600">
                     <span>
                       {item.quantity} {item.product.unit} x {formatCurrency(item.sellingPrice)}
                     </span>
-                    <span className="font-mono font-semibold text-black">
+                    <span className="font-mono font-semibold text-slate-950">
                       {formatCurrency(item.subtotal)}
                     </span>
                   </div>
@@ -227,72 +232,75 @@ export default function ThermalReceipt({
               ))}
             </div>
 
-            <div className="border-b border-dashed border-black my-2"></div>
+            {/* 6. Dashed Divider */}
+            <div className="border-b border-dashed border-slate-400 my-2"></div>
 
-            {/* Price Calculations */}
+            {/* 7. Price Calculations & 8. Payment Info */}
             <div className="space-y-1 text-[11px]">
               <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(transaction.subtotal)}</span>
+                <span className="text-slate-600">Subtotal:</span>
+                <span className="font-mono text-slate-900">{formatCurrency(transaction.subtotal)}</span>
               </div>
               {transaction.pointDiscount > 0 && (
                 <div className="flex justify-between text-rose-700">
                   <span>Diskon Poin ({transaction.pointsUsed} pt):</span>
-                  <span>-{formatCurrency(transaction.pointDiscount)}</span>
+                  <span className="font-mono">-{formatCurrency(transaction.pointDiscount)}</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-sm pt-1 border-t border-black">
+              <div className="flex justify-between font-bold text-sm pt-1 border-t border-slate-900 text-slate-950">
                 <span>TOTAL:</span>
-                <span>{formatCurrency(transaction.finalAmount)}</span>
+                <span className="font-mono">{formatCurrency(transaction.finalAmount)}</span>
               </div>
               <div className="flex justify-between pt-0.5">
-                <span>Bayar ({transaction.paymentMethod}):</span>
-                <span>{formatCurrency(transaction.paidAmount)}</span>
+                <span className="text-slate-600">Bayar ({transaction.paymentMethod}):</span>
+                <span className="font-mono text-slate-900">{formatCurrency(transaction.paidAmount)}</span>
               </div>
-              <div className="flex justify-between font-semibold">
-                <span>Kembali:</span>
-                <span>{formatCurrency(transaction.changeAmount)}</span>
+              <div className="flex justify-between font-semibold text-slate-900">
+                <span className="text-slate-600">Kembali:</span>
+                <span className="font-mono">{formatCurrency(transaction.changeAmount)}</span>
               </div>
             </div>
 
+            {/* 9. Dashed Divider & 10. Member Points Summary */}
             {transaction.member && (
               <>
-                <div className="border-b border-dashed border-black my-2"></div>
-                <div className="text-[10px] space-y-0.5 bg-slate-100 p-1.5 rounded">
+                <div className="border-b border-dashed border-slate-400 my-2"></div>
+                <div className="text-[10px] space-y-0.5 bg-slate-100 p-1.5 rounded border border-slate-200">
                   <div className="flex justify-between">
-                    <span>Poin Diperoleh:</span>
-                    <span className="font-bold">+{transaction.pointsEarned} pt</span>
+                    <span className="text-slate-600">Poin Diperoleh:</span>
+                    <span className="font-bold text-emerald-700">+{transaction.pointsEarned} pt</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total Sisa Poin:</span>
-                    <span className="font-bold">{transaction.member.points} pt</span>
+                    <span className="text-slate-600">Total Sisa Poin:</span>
+                    <span className="font-bold text-slate-950">{transaction.member.points} pt</span>
                   </div>
                 </div>
               </>
             )}
 
-            <div className="border-b border-dashed border-black my-2"></div>
+            {/* 11. Dashed Divider */}
+            <div className="border-b border-dashed border-slate-400 my-2"></div>
 
-            {/* Footer */}
-            <div className="text-center text-[10px] text-slate-700 space-y-1">
-              <p className="font-medium">Terima kasih telah berbelanja!</p>
+            {/* 12. Footer Message */}
+            <div className="text-center text-[10px] text-slate-600 leading-tight pb-1 space-y-0.5">
+              <p className="font-medium text-slate-800">Terima kasih telah berbelanja!</p>
               <p>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.</p>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900 flex gap-3 no-print">
+        {/* Action Buttons Footer */}
+        <div className="p-3 sm:p-4 border-t border-slate-800 bg-slate-900 flex gap-2.5 shrink-0 no-print">
           <button
             onClick={handlePrint}
-            className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition"
+            className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/20 text-xs sm:text-sm"
           >
-            <Printer className="w-5 h-5" />
+            <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Cetak Struk Thermal</span>
           </button>
           <button
             onClick={onClose}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 px-4 rounded-xl transition"
+            className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition text-xs sm:text-sm"
           >
             Selesai
           </button>
