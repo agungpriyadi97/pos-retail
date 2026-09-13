@@ -68,8 +68,12 @@ export default function PosPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  // Modals
+  // Modals & Camera Session
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+  const [cameraSessionId, setCameraSessionId] = useState<number>(0);
+  const lastScannedBarcodeRef = React.useRef<string>('');
+  const lastScannedTimeRef = React.useRef<number>(0);
+
   const [completedTransaction, setCompletedTransaction] = useState<any | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState<boolean>(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
@@ -285,12 +289,30 @@ export default function PosPage() {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
   };
 
+  const handleOpenCamera = () => {
+    setSearchQuery('');
+    setCameraSessionId(Date.now());
+    setIsCameraOpen(true);
+  };
+
   const handleScanSuccess = (barcode: string) => {
     const now = Date.now();
-    if (now - lastScanTimeRef.current < 1000) {
-      return; // Ignore duplicate scan within 1 second cooldown
+
+    // Block duplicate barcode scanned within 4 seconds
+    if (
+      barcode === lastScannedBarcodeRef.current &&
+      now - lastScannedTimeRef.current < 4000
+    ) {
+      return;
     }
-    lastScanTimeRef.current = now;
+
+    // General cooldown: 1.5 seconds
+    if (now - lastScannedTimeRef.current < 1500) {
+      return;
+    }
+
+    lastScannedBarcodeRef.current = barcode;
+    lastScannedTimeRef.current = now;
 
     // Clear search query so input field does not keep barcode text
     setSearchQuery('');
@@ -756,10 +778,7 @@ export default function PosPage() {
               />
             </div>
             <button
-              onClick={() => {
-                setSearchQuery('');
-                setIsCameraOpen(true);
-              }}
+              onClick={handleOpenCamera}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl flex items-center gap-1.5 text-xs sm:text-sm shadow-md shadow-emerald-500/20 transition shrink-0 min-h-[38px]"
             >
               <Camera className="w-4 h-4" />
@@ -879,6 +898,7 @@ export default function PosPage() {
 
       {/* WebRTC Camera Barcode Scanner Modal */}
       <CameraScannerModal
+        key={cameraSessionId}
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onScanSuccess={handleScanSuccess}
