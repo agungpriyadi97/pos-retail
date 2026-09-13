@@ -23,6 +23,8 @@ async function getSessionUser() {
   }
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     let settings = await prisma.storeSetting.findUnique({

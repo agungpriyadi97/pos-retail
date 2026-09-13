@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -38,13 +40,13 @@ export async function GET(req: NextRequest) {
       where: transactionItemWhere,
     });
 
-    const salesMap = new Map(
-      sales7DaysGroup.map((s) => [s.productId, s._sum.quantity || 0])
+    const salesMap = new Map<string, number>(
+      sales7DaysGroup.map((s: any) => [s.productId, s._sum.quantity || 0])
     );
 
-    const reportData = products.map((product) => {
-      const currentStock = product.stocks.reduce((acc, s) => acc + s.quantity, 0);
-      const sales7Days = salesMap.get(product.id) || 0;
+    const reportData = products.map((product: any) => {
+      const currentStock = product.stocks.reduce((acc: number, s: any) => acc + s.quantity, 0);
+      const sales7Days = Number(salesMap.get(product.id) || 0);
       const weeklyVelocity = sales7Days; // sales over 1 week
 
       let wos = sales7Days > 0 ? Number((currentStock / sales7Days).toFixed(2)) : 999;
