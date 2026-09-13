@@ -292,7 +292,9 @@ export default function PosPage() {
     }
     lastScanTimeRef.current = now;
 
-    setSearchQuery(barcode);
+    // Clear search query so input field does not keep barcode text
+    setSearchQuery('');
+
     const found = products.find(
       (p) => p.barcode === barcode || p.sku.toLowerCase() === barcode.toLowerCase()
     );
@@ -754,7 +756,10 @@ export default function PosPage() {
               />
             </div>
             <button
-              onClick={() => setIsCameraOpen(true)}
+              onClick={() => {
+                setSearchQuery('');
+                setIsCameraOpen(true);
+              }}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl flex items-center gap-1.5 text-xs sm:text-sm shadow-md shadow-emerald-500/20 transition shrink-0 min-h-[38px]"
             >
               <Camera className="w-4 h-4" />

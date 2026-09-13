@@ -18,6 +18,7 @@ export default function CameraScannerModal({
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isStoppingRef = useRef<boolean>(false);
   const isScanningLockedRef = useRef<boolean>(false);
+  const isReadyToScanRef = useRef<boolean>(false);
 
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
@@ -101,7 +102,7 @@ export default function CameraScannerModal({
       };
 
       const handleSuccess = async (decodedText: string) => {
-        if (isScanningLockedRef.current) return;
+        if (!isReadyToScanRef.current || isScanningLockedRef.current) return;
         isScanningLockedRef.current = true;
 
         playBeep();
@@ -158,15 +159,26 @@ export default function CameraScannerModal({
   }, [onScanSuccess, onClose, stopScanner]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      isReadyToScanRef.current = false;
+      return;
+    }
+
+    isReadyToScanRef.current = false;
+
+    // Warm-up lock for 700ms before enabling scan processing
+    const warmupTimer = setTimeout(() => {
+      isReadyToScanRef.current = true;
+    }, 700);
 
     // Small delay to ensure modal DOM rendering
-    const timer = setTimeout(() => {
+    const initTimer = setTimeout(() => {
       startScanner();
     }, 150);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(warmupTimer);
+      clearTimeout(initTimer);
       stopScanner();
     };
   }, [isOpen, startScanner, stopScanner]);
