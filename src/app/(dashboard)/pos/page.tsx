@@ -49,6 +49,7 @@ interface Member {
 
 export default function PosPage() {
   const [branchId, setBranchId] = useState<string>('');
+  const [branches, setBranches] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -88,6 +89,7 @@ export default function PosPage() {
   useEffect(() => {
     fetchSessionUser();
     fetchStoreSettings();
+    fetchBranches();
     const storedBranch =
       localStorage.getItem('selectedBranchId') ||
       localStorage.getItem('pos_selected_branch_id') ||
@@ -106,6 +108,19 @@ export default function PosPage() {
     window.addEventListener('branchChanged', handleBranchChange);
     return () => window.removeEventListener('branchChanged', handleBranchChange);
   }, []);
+
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch('/api/branches?activeOnly=true');
+      const data = await res.json();
+      const list = data.branches || data.data || [];
+      if (Array.isArray(list)) {
+        setBranches(list);
+      }
+    } catch (e) {
+      console.error('Failed to load branches in POS page', e);
+    }
+  };
 
   const fetchStoreSettings = async () => {
     try {
@@ -410,7 +425,7 @@ export default function PosPage() {
   };
 
   // Synchronize & resolve active branch ID before submitting checkout
-  const getValidBranchId = async (): Promise<string | null> => {
+  const getValidBranchId = (): string | null => {
     // 1. Try from active state if valid
     if (branchId && branchId !== 'all' && branchId !== 'undefined' && branchId !== '') {
       return branchId;
@@ -418,34 +433,17 @@ export default function PosPage() {
     // 2. Try from localStorage
     if (typeof window !== 'undefined') {
       const stored =
-        localStorage.getItem('selectedBranchId') ||
-        localStorage.getItem('pos_selected_branch_id');
+        localStorage.getItem('pos_selected_branch_id') ||
+        localStorage.getItem('selectedBranchId');
       if (stored && stored !== 'all' && stored !== 'undefined' && stored !== '') {
-        setBranchId(stored);
         return stored;
       }
     }
-    // 3. Fallback to active retail branch from API
-    try {
-      const res = await fetch('/api/branches?activeOnly=true');
-      const data = await res.json();
-      const activeList: any[] = data.branches || data.data || [];
-      const firstActive =
-        activeList.find((b) => b.isActive && !b.isWarehouse) ||
-        activeList.find((b) => b.isActive) ||
-        activeList[0];
-      if (firstActive) {
-        setBranchId(firstActive.id);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('selectedBranchId', firstActive.id);
-          localStorage.setItem('pos_selected_branch_id', firstActive.id);
-        }
-        return firstActive.id;
-      }
-    } catch (e) {
-      console.error('Failed to resolve active branch fallback', e);
-    }
-    return null;
+    // 3. Fallback to first available active branch
+    const firstActive =
+      branches.find((b: any) => b.isActive && !b.isWarehouse) ||
+      branches.find((b: any) => b.isActive);
+    return firstActive ? firstActive.id : null;
   };
 
   const handleCheckout = async () => {
@@ -465,7 +463,7 @@ export default function PosPage() {
     try {
       setIsSubmitting(true);
 
-      const activeBranchId = await getValidBranchId();
+      const activeBranchId = getValidBranchId();
       if (!activeBranchId) {
         setCheckoutError('Tidak ada cabang retail aktif yang tersedia untuk memproses checkout.');
         setIsSubmitting(false);
