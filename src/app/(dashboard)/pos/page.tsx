@@ -88,11 +88,19 @@ export default function PosPage() {
   useEffect(() => {
     fetchSessionUser();
     fetchStoreSettings();
-    const storedBranch = localStorage.getItem('selectedBranchId') || '';
+    const storedBranch =
+      localStorage.getItem('selectedBranchId') ||
+      localStorage.getItem('pos_selected_branch_id') ||
+      '';
     setBranchId(storedBranch);
 
     const handleBranchChange = (e: any) => {
-      setBranchId(e.detail);
+      const newBranchId = typeof e.detail === 'string' ? e.detail : e.detail?.id;
+      if (newBranchId) {
+        setBranchId(newBranchId);
+        localStorage.setItem('selectedBranchId', newBranchId);
+        localStorage.setItem('pos_selected_branch_id', newBranchId);
+      }
     };
 
     window.addEventListener('branchChanged', handleBranchChange);
@@ -401,6 +409,45 @@ export default function PosPage() {
     }
   };
 
+  // Synchronize & resolve active branch ID before submitting checkout
+  const getValidBranchId = async (): Promise<string | null> => {
+    // 1. Try from active state if valid
+    if (branchId && branchId !== 'all' && branchId !== 'undefined' && branchId !== '') {
+      return branchId;
+    }
+    // 2. Try from localStorage
+    if (typeof window !== 'undefined') {
+      const stored =
+        localStorage.getItem('selectedBranchId') ||
+        localStorage.getItem('pos_selected_branch_id');
+      if (stored && stored !== 'all' && stored !== 'undefined' && stored !== '') {
+        setBranchId(stored);
+        return stored;
+      }
+    }
+    // 3. Fallback to active retail branch from API
+    try {
+      const res = await fetch('/api/branches?activeOnly=true');
+      const data = await res.json();
+      const activeList: any[] = data.branches || data.data || [];
+      const firstActive =
+        activeList.find((b) => b.isActive && !b.isWarehouse) ||
+        activeList.find((b) => b.isActive) ||
+        activeList[0];
+      if (firstActive) {
+        setBranchId(firstActive.id);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('selectedBranchId', firstActive.id);
+          localStorage.setItem('pos_selected_branch_id', firstActive.id);
+        }
+        return firstActive.id;
+      }
+    } catch (e) {
+      console.error('Failed to resolve active branch fallback', e);
+    }
+    return null;
+  };
+
   const handleCheckout = async () => {
     setCheckoutError(null);
     if (cart.length === 0) {
@@ -417,9 +464,17 @@ export default function PosPage() {
 
     try {
       setIsSubmitting(true);
+
+      const activeBranchId = await getValidBranchId();
+      if (!activeBranchId) {
+        setCheckoutError('Tidak ada cabang retail aktif yang tersedia untuk memproses checkout.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
-        branchId: branchId || undefined,
-        cashierId: currentUserId || undefined, // dynamic valid session user ID
+        branchId: activeBranchId,
+        cashierId: currentUserId || undefined,
         memberId: selectedMember ? selectedMember.id : undefined,
         items: cart.map((i) => ({
           productId: i.product.id,
