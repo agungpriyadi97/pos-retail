@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   ShoppingCart,
+  Receipt,
   Users,
   Package,
   PackagePlus,
@@ -186,6 +187,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       href: '/pos',
       icon: ShoppingCart,
       color: 'bg-emerald-500',
+      ownerOnly: false,
+    },
+    {
+      name: 'Riwayat Transaksi',
+      href: '/transactions',
+      icon: Receipt,
+      color: 'bg-emerald-600',
       ownerOnly: false,
     },
     {
