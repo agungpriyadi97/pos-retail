@@ -19,7 +19,16 @@ async function getSessionUser() {
 
 export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const activeOnly = searchParams.get('activeOnly') === 'true';
+
+    const whereClause: any = {};
+    if (activeOnly) {
+      whereClause.isActive = true;
+    }
+
     const branches = await prisma.branch.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'asc' },
     });
 
@@ -91,7 +100,7 @@ export async function POST(req: NextRequest) {
           phone: phone ? phone.trim() : null,
           isWarehouse: Boolean(isWarehouse),
           isActive: true,
-        },
+        } as any,
       });
 
       const products = await tx.product.findMany({

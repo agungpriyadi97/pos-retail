@@ -109,15 +109,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const fetchBranches = async () => {
     try {
-      const res = await fetch('/api/branches');
+      const res = await fetch('/api/branches?activeOnly=true');
       const data = await res.json();
-      if (data.success && data.data.length > 0) {
-        setBranches(data.data);
+      const branchList: Branch[] = data.branches || data.data || [];
+      if (data.success && branchList.length > 0) {
+        setBranches(branchList);
         const stored = localStorage.getItem('selectedBranchId');
+        const validStoredBranch = branchList.find((b: Branch) => b.id === stored);
         const defaultBranch =
-          data.data.find((b: Branch) => b.id === stored) ||
-          data.data.find((b: Branch) => !b.isWarehouse) ||
-          data.data[0];
+          validStoredBranch ||
+          branchList.find((b: Branch) => !b.isWarehouse) ||
+          branchList[0];
 
         setSelectedBranchId(defaultBranch.id);
         localStorage.setItem('selectedBranchId', defaultBranch.id);

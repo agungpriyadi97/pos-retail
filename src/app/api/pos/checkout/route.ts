@@ -21,6 +21,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verify branch exists and is active
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+    });
+
+    if (!branch || (branch as any).isActive === false) {
+      return NextResponse.json(
+        { error: 'Cabang ini sedang nonaktif dan tidak dapat memproses transaksi kasir.' },
+        { status: 400 }
+      );
+    }
+
     // Atomic transaction for inventory, member points, transaction logs, & ledger
     const result = await prisma.$transaction(async (tx: any) => {
       // 0. Validate Cashier ID with safe DB fallback to guarantee no FK violation

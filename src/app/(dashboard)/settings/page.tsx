@@ -24,6 +24,7 @@ import {
   Power,
   Warehouse,
   Building,
+  Trash2,
 } from 'lucide-react';
 
 interface Branch {
@@ -253,6 +254,39 @@ export default function SettingsPage() {
       }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Gagal mengubah status cabang.' });
+    }
+  };
+
+  const handleDeleteBranch = async (branch: Branch) => {
+    const confirmed = window.confirm(
+      `Apakah Anda yakin ingin menghapus cabang "${branch.name}" (${branch.code})?\n\nCatatan: Cabang yang sudah memiliki riwayat transaksi tidak dapat dihapus secara permanen, melainkan harus dinonaktifkan.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/branches/${branch.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setMessage({
+          type: 'success',
+          text: data.message || `Cabang "${branch.name}" berhasil dihapus.`,
+        });
+        await fetchBranches();
+        window.dispatchEvent(new CustomEvent('branchChanged', { detail: branch.id }));
+      } else {
+        setMessage({
+          type: 'error',
+          text: data.error || 'Gagal menghapus cabang.',
+        });
+      }
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.message || 'Terjadi kesalahan sistem saat menghapus cabang.',
+      });
     }
   };
 
@@ -572,13 +606,22 @@ export default function SettingsPage() {
                               onClick={() => handleToggleBranchStatus(b)}
                               className={`p-1.5 rounded-lg border text-[11px] font-medium transition flex items-center gap-1 ${
                                 b.isActive
-                                  ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
+                                  ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30'
                                   : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                               }`}
                               title={b.isActive ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}
                             >
                               <Power className="w-3.5 h-3.5" />
                               <span>{b.isActive ? 'Nonaktifkan' : 'Aktifkan'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteBranch(b)}
+                              className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg transition flex items-center gap-1 text-[11px] font-medium"
+                              title="Hapus Cabang"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus</span>
                             </button>
                           </div>
                         </td>
@@ -623,7 +666,7 @@ export default function SettingsPage() {
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                       <span className="text-[11px] text-slate-500">
                         {b.isWarehouse ? 'Gudang Central' : 'Outlet Retail'}
                       </span>
@@ -640,12 +683,20 @@ export default function SettingsPage() {
                           onClick={() => handleToggleBranchStatus(b)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1 ${
                             b.isActive
-                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                               : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                           }`}
                         >
                           <Power className="w-3 h-3" />
                           <span>{b.isActive ? 'Nonaktifkan' : 'Aktifkan'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteBranch(b)}
+                          className="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Hapus</span>
                         </button>
                       </div>
                     </div>
