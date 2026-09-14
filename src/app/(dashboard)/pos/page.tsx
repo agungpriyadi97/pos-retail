@@ -150,19 +150,36 @@ export default function PosPage() {
     }
   };
 
+  const fetchRequestIdRef = React.useRef<number>(0);
+
   useEffect(() => {
     fetchProducts();
   }, [branchId, searchQuery]);
 
   const fetchProducts = async () => {
+    const requestId = ++fetchRequestIdRef.current;
     try {
       setLoadingProducts(true);
       const url = new URL('/api/products', window.location.origin);
-      if (branchId) url.searchParams.append('branchId', branchId);
+      if (branchId && branchId !== 'all' && branchId !== 'undefined') {
+        url.searchParams.append('branchId', branchId);
+      }
       if (searchQuery) url.searchParams.append('query', searchQuery);
 
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      });
       const data = await res.json();
+
+      // Guard: Discard response if a newer fetch request has already been initiated
+      if (requestId !== fetchRequestIdRef.current) {
+        return;
+      }
+
       if (data.success) {
         setProducts(data.products || data.data || []);
         if (data.branchId && (!branchId || branchId === 'all')) {
@@ -170,9 +187,13 @@ export default function PosPage() {
         }
       }
     } catch (err) {
-      console.error('Failed to load products', err);
+      if (requestId === fetchRequestIdRef.current) {
+        console.error('Failed to load products', err);
+      }
     } finally {
-      setLoadingProducts(false);
+      if (requestId === fetchRequestIdRef.current) {
+        setLoadingProducts(false);
+      }
     }
   };
 

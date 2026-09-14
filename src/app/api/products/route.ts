@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { decodeSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const createProductSchema = z.object({
   name: z.string().min(2, 'Nama produk minimal 2 karakter.'),
   barcode: z.string().min(3, 'Barcode minimal 3 karakter.'),
@@ -21,18 +24,20 @@ const createProductSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    let targetBranchId = searchParams.get('branchId');
+    let branchId = searchParams.get('branchId');
     const query = searchParams.get('query');
     const categoryId = searchParams.get('categoryId');
 
-    // 1. If branchId is missing, empty, 'all', or 'undefined', automatically fetch the FIRST ACTIVE branch
+    // 1. Resolve Target Branch
+    // If branchId is not provided, invalid, 'all', 'undefined', or 'null', explicitly find the FIRST ACTIVE branch only!
     if (
-      !targetBranchId ||
-      targetBranchId === 'all' ||
-      targetBranchId === 'undefined' ||
-      targetBranchId === ''
+      !branchId ||
+      branchId === 'all' ||
+      branchId === 'undefined' ||
+      branchId === 'null' ||
+      branchId === ''
     ) {
-      const activeBranch =
+      const firstActiveBranch =
         (await (prisma.branch as any).findFirst({
           where: { isActive: true, isWarehouse: false },
           orderBy: { createdAt: 'asc' },
@@ -41,7 +46,14 @@ export async function GET(req: NextRequest) {
           where: { isActive: true },
           orderBy: { createdAt: 'asc' },
         }));
-      targetBranchId = activeBranch ? activeBranch.id : null;
+      branchId = firstActiveBranch ? firstActiveBranch.id : null;
+    }
+
+    if (!branchId) {
+      return NextResponse.json(
+        { success: false, error: 'Tidak ada cabang aktif yang ditemukan', products: [], data: [] },
+        { status: 400 }
+      );
     }
 
     const whereClause: any = {};
@@ -56,21 +68,25 @@ export async function GET(req: NextRequest) {
       whereClause.categoryId = categoryId;
     }
 
-    // 2. Query master products & join specifically with target branch's inventory stocks
+    // 2. Fetch Products along with inventory for the SPECIFIC active branch only
     const products = await prisma.product.findMany({
       where: whereClause,
       include: {
         category: true,
-        stocks: targetBranchId ? { where: { branchId: targetBranchId } } : true,
+        stocks: {
+          where: {
+            branchId: branchId,
+            branch: { isActive: true }, // Extra safety: ensure branch itself is active
+          },
+        },
       },
       orderBy: { name: 'asc' },
     });
 
+    // 3. Format response: ensure stock strictly maps to this specific branch
     const formattedProducts = products.map((p: any) => {
-      const branchStock = targetBranchId
-        ? (p.stocks.find((s: any) => s.branchId === targetBranchId)?.quantity ?? p.stocks[0]?.quantity ?? 0)
-        : p.stocks.reduce((acc: number, s: any) => acc + s.quantity, 0);
-
+      const inv = p.stocks && p.stocks.length > 0 ? p.stocks[0] : null;
+      const branchStock = inv ? inv.quantity : 0;
       const cost = Number(p.costPrice);
       const selling = Number(p.sellingPrice);
       const margin = cost > 0 ? Number((((selling - cost) / cost) * 100).toFixed(1)) : 0;
@@ -81,31 +97,40 @@ export async function GET(req: NextRequest) {
         sku: p.sku,
         name: p.name,
         description: p.description,
-        costPrice: cost,
+        price: selling,
         sellingPrice: selling,
+        costPrice: cost,
         profitMarginPercent: margin,
+        minStock: p.minStockAlert,
         minStockAlert: p.minStockAlert,
         unit: p.unit,
         category: p.category ? p.category.name : 'Uncategorized',
         categoryId: p.categoryId,
         stock: branchStock,
-        branchId: targetBranchId,
-        currentBranchId: targetBranchId,
+        branchId: branchId,
+        currentBranchId: branchId,
         inventory: p.stocks,
         createdAt: p.createdAt,
       };
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
-      branchId: targetBranchId,
+      branchId,
       products: formattedProducts,
       data: formattedProducts,
     });
+
+    // Prevent any browser or CDN caching
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
   } catch (error: any) {
-    console.error('Fetch Products Error:', error);
+    console.error('Error fetching products for POS:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Gagal mengambil data produk.' },
+      { success: false, error: 'Gagal memuat produk', message: error.message, details: error.message },
       { status: 500 }
     );
   }
