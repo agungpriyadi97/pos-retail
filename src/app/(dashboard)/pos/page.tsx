@@ -181,7 +181,14 @@ export default function PosPage() {
       }
 
       if (data.success) {
-        setProducts(data.products || data.data || []);
+        const rawList = data.products || data.data || [];
+        const normalized = rawList.map((p: any) => ({
+          ...p,
+          sellingPrice: Number(p.sellingPrice ?? p.price ?? 0),
+          costPrice: Number(p.costPrice ?? 0),
+          stock: typeof p.stock === 'number' ? p.stock : (p.quantity ?? 0),
+        }));
+        setProducts(normalized);
         if (data.branchId && (!branchId || branchId === 'all')) {
           setBranchId(data.branchId);
         }

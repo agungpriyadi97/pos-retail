@@ -28,16 +28,10 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get('query');
     const categoryId = searchParams.get('categoryId');
 
-    // 1. Resolve Target Branch
-    // If branchId is not provided, invalid, 'all', 'undefined', or 'null', explicitly find the FIRST ACTIVE branch only!
-    if (
-      !branchId ||
-      branchId === 'all' ||
-      branchId === 'undefined' ||
-      branchId === 'null' ||
-      branchId === ''
-    ) {
-      const firstActiveBranch =
+    // 1. Resolve Target Branch:
+    // If branchId is not provided, is "all", "undefined", or "null", fetch the active branch
+    if (!branchId || branchId === 'all' || branchId === 'undefined' || branchId === 'null' || branchId === '') {
+      const activeBranch =
         (await (prisma.branch as any).findFirst({
           where: { isActive: true, isWarehouse: false },
           orderBy: { createdAt: 'asc' },
@@ -46,14 +40,7 @@ export async function GET(req: NextRequest) {
           where: { isActive: true },
           orderBy: { createdAt: 'asc' },
         }));
-      branchId = firstActiveBranch ? firstActiveBranch.id : null;
-    }
-
-    if (!branchId) {
-      return NextResponse.json(
-        { success: false, error: 'Tidak ada cabang aktif yang ditemukan', products: [], data: [] },
-        { status: 400 }
-      );
+      branchId = activeBranch ? activeBranch.id : null;
     }
 
     const whereClause: any = {};
@@ -68,49 +55,46 @@ export async function GET(req: NextRequest) {
       whereClause.categoryId = categoryId;
     }
 
-    // 2. Fetch Products along with inventory for the SPECIFIC active branch only
+    // 2. Fetch products and their branch inventory specifically (stocks relation points to BranchStock)
     const products = await prisma.product.findMany({
       where: whereClause,
       include: {
         category: true,
-        stocks: {
-          where: {
-            branchId: branchId,
-            branch: { isActive: true }, // Extra safety: ensure branch itself is active
-          },
-        },
+        stocks: branchId ? { where: { branchId } } : true,
       },
       orderBy: { name: 'asc' },
     });
 
-    // 3. Format response: ensure stock strictly maps to this specific branch
-    const formattedProducts = products.map((p: any) => {
-      const inv = p.stocks && p.stocks.length > 0 ? p.stocks[0] : null;
-      const branchStock = inv ? inv.quantity : 0;
-      const cost = Number(p.costPrice);
-      const selling = Number(p.sellingPrice);
+    // 3. Map products to guarantee correct stock display
+    const formattedProducts = products.map((product: any) => {
+      // Find matching inventory entry for this branch
+      const inv = product.stocks?.find((i: any) => i.branchId === branchId) || product.stocks?.[0];
+      const realStock = inv ? (typeof inv.quantity === 'number' ? inv.quantity : Number(inv.stock || 0)) : 0;
+
+      const cost = Number(product.costPrice || 0);
+      const selling = Number(product.sellingPrice || product.price || 0);
       const margin = cost > 0 ? Number((((selling - cost) / cost) * 100).toFixed(1)) : 0;
 
       return {
-        id: p.id,
-        barcode: p.barcode,
-        sku: p.sku,
-        name: p.name,
-        description: p.description,
+        id: product.id,
+        name: product.name,
+        barcode: product.barcode,
+        sku: product.sku,
+        description: product.description,
+        category: product.category ? product.category.name : 'Uncategorized',
+        categoryId: product.categoryId,
+        unit: product.unit,
         price: selling,
         sellingPrice: selling,
         costPrice: cost,
         profitMarginPercent: margin,
-        minStock: p.minStockAlert,
-        minStockAlert: p.minStockAlert,
-        unit: p.unit,
-        category: p.category ? p.category.name : 'Uncategorized',
-        categoryId: p.categoryId,
-        stock: branchStock,
+        minStock: product.minStockAlert,
+        minStockAlert: product.minStockAlert,
+        stock: realStock,
         branchId: branchId,
         currentBranchId: branchId,
-        inventory: p.stocks,
-        createdAt: p.createdAt,
+        inventory: product.stocks,
+        createdAt: product.createdAt,
       };
     });
 
@@ -121,7 +105,6 @@ export async function GET(req: NextRequest) {
       data: formattedProducts,
     });
 
-    // Prevent any browser or CDN caching
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
@@ -130,7 +113,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error('Error fetching products for POS:', error);
     return NextResponse.json(
-      { success: false, error: 'Gagal memuat produk', message: error.message, details: error.message },
+      { success: false, error: 'Gagal memuat produk', details: error.message, message: error.message },
       { status: 500 }
     );
   }
