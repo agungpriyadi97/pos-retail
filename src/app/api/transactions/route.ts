@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PaymentMethod } from '@prisma/client';
+import { cookies } from 'next/headers';
+import { decodeSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +14,30 @@ export async function GET(req: NextRequest) {
     const endDateParam = searchParams.get('endDate');
     const branchId = searchParams.get('branchId');
     const paymentMethod = searchParams.get('paymentMethod');
+    const cashierIdParam = searchParams.get('cashierId');
+
+    // 1. Authenticate Session & Extract Role
+    const cookieStore = cookies();
+    const token =
+      cookieStore.get(SESSION_COOKIE_NAME)?.value ||
+      cookieStore.get('session_user')?.value;
+
+    let sessionUser: any = null;
+    if (token) {
+      sessionUser = decodeSessionToken(token);
+      if (!sessionUser) {
+        try {
+          sessionUser = JSON.parse(token);
+        } catch (e) {}
+      }
+    }
+
+    if (sessionUser?.id) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: sessionUser.id },
+      });
+      if (dbUser) sessionUser = dbUser;
+    }
 
     const now = new Date();
     let start: Date;
@@ -57,16 +83,34 @@ export async function GET(req: NextRequest) {
       },
     };
 
+    // 2. Apply Branch Filter
     if (branchId && branchId !== 'ALL' && branchId !== '') {
       whereClause.branchId = branchId;
     }
 
+    // 3. Apply Payment Method Filter
     if (paymentMethod && paymentMethod !== 'ALL' && paymentMethod !== '') {
       if (Object.values(PaymentMethod).includes(paymentMethod as PaymentMethod)) {
         whereClause.paymentMethod = paymentMethod as PaymentMethod;
       }
     }
 
+    // 4. Apply RBAC Scoping on Cashier/User
+    const isOwner = sessionUser?.role === 'ADMIN_OWNER' || sessionUser?.role === 'OWNER';
+
+    if (isOwner) {
+      // Owner sees ALL transactions across all users. If a specific cashierId filter parameter is passed, filter by it.
+      if (cashierIdParam && cashierIdParam !== 'ALL' && cashierIdParam !== '') {
+        whereClause.cashierId = cashierIdParam;
+      }
+    } else {
+      // Cashier role: restrict to session user's transactions only
+      if (sessionUser?.id) {
+        whereClause.cashierId = sessionUser.id;
+      }
+    }
+
+    // 5. Fetch Transactions with full relations
     const rawTransactions = await prisma.transaction.findMany({
       where: whereClause,
       include: {
@@ -83,6 +127,7 @@ export async function GET(req: NextRequest) {
             id: true,
             fullName: true,
             username: true,
+            role: true,
           },
         },
         member: {
@@ -112,6 +157,22 @@ export async function GET(req: NextRequest) {
         createdAt: 'desc',
       },
     });
+
+    // 6. Fetch Cashiers List (For Owner Filter Dropdown)
+    let cashiersList: any[] = [];
+    if (isOwner) {
+      cashiersList = await prisma.user.findMany({
+        select: {
+          id: true,
+          fullName: true,
+          username: true,
+          role: true,
+        },
+        orderBy: {
+          fullName: 'asc',
+        },
+      });
+    }
 
     let totalRevenue = 0;
     let totalDiscount = 0;
@@ -159,8 +220,9 @@ export async function GET(req: NextRequest) {
             name: tx.cashier.fullName,
             fullName: tx.cashier.fullName,
             username: tx.cashier.username,
+            role: tx.cashier.role,
           }
-        : { id: '', name: 'Kasir', fullName: 'Kasir', username: 'kasir' };
+        : { id: '', name: 'Kasir', fullName: 'Kasir', username: 'kasir', role: 'CASHIER' };
 
       const formattedMember = tx.member
         ? {
@@ -216,6 +278,8 @@ export async function GET(req: NextRequest) {
         profitMargin: Number(profitMargin.toFixed(2)),
       },
       transactions: formattedTransactions,
+      cashiers: cashiersList,
+      userRole: sessionUser?.role || 'CASHIER',
     });
   } catch (error: any) {
     console.error('Error fetching transactions:', error);

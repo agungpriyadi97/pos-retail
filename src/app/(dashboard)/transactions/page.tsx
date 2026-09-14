@@ -109,6 +109,9 @@ export default function TransactionsPage() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('ALL');
+  const [cashierIdFilter, setCashierIdFilter] = useState<string>('ALL');
+  const [cashiersList, setCashiersList] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [branchId, setBranchId] = useState<string>('');
 
@@ -162,6 +165,9 @@ export default function TransactionsPage() {
       if (paymentMethodFilter !== 'ALL') {
         url.searchParams.append('paymentMethod', paymentMethodFilter);
       }
+      if (cashierIdFilter !== 'ALL') {
+        url.searchParams.append('cashierId', cashierIdFilter);
+      }
 
       if (period === 'custom') {
         if (startDate) url.searchParams.append('startDate', startDate);
@@ -173,6 +179,8 @@ export default function TransactionsPage() {
 
       if (data.success) {
         setTransactions(data.transactions || []);
+        if (data.cashiers) setCashiersList(data.cashiers);
+        if (data.userRole) setUserRole(data.userRole);
         setSummary(
           data.summary || {
             totalRevenue: 0,
@@ -193,7 +201,7 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [period, startDate, endDate, paymentMethodFilter, branchId]);
+  }, [period, startDate, endDate, paymentMethodFilter, cashierIdFilter, branchId]);
 
   useEffect(() => {
     fetchTransactions();
@@ -334,21 +342,43 @@ export default function TransactionsPage() {
               ))}
             </div>
 
-            {/* Payment Method Selector */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Filter className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-xs text-slate-400 hidden lg:inline">Metode:</span>
-              <select
-                value={paymentMethodFilter}
-                onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium cursor-pointer w-full sm:w-auto"
-              >
-                <option value="ALL">Semua Pembayaran</option>
-                <option value="CASH">Tunai (Cash)</option>
-                <option value="QRIS">QRIS</option>
-                <option value="TRANSFER">Transfer Bank</option>
-                <option value="DEBIT">Kartu Debit</option>
-              </select>
+            <div className="flex items-center flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
+              {/* Cashier Filter Selector (Shown to Owner) */}
+              {(userRole === 'ADMIN_OWNER' || userRole === 'OWNER' || cashiersList.length > 0) && (
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <User className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs text-slate-400 hidden lg:inline">Kasir:</span>
+                  <select
+                    value={cashierIdFilter}
+                    onChange={(e) => setCashierIdFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium cursor-pointer w-full sm:w-auto"
+                  >
+                    <option value="ALL">Semua Kasir & Staf</option>
+                    {cashiersList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.fullName} ({c.role === 'ADMIN_OWNER' ? 'Owner' : 'Kasir'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Payment Method Selector */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Filter className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-xs text-slate-400 hidden lg:inline">Metode:</span>
+                <select
+                  value={paymentMethodFilter}
+                  onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium cursor-pointer w-full sm:w-auto"
+                >
+                  <option value="ALL">Semua Pembayaran</option>
+                  <option value="CASH">Tunai (Cash)</option>
+                  <option value="QRIS">QRIS</option>
+                  <option value="TRANSFER">Transfer Bank</option>
+                  <option value="DEBIT">Kartu Debit</option>
+                </select>
+              </div>
             </div>
           </div>
 
