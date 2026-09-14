@@ -14,8 +14,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'POS Retail - Sekar Supermarket Balekota',
-  description: 'Sistem Kasir Retail Multi-Cabang & Manajemen Inventaris Sekar Supermarket',
+  title: 'POS Retail',
+  description: 'Sistem Kasir Retail Multi-Cabang & Manajemen Inventaris',
   icons: {
     icon: '/favicon.ico',
   },
