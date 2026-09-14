@@ -59,7 +59,7 @@ export default function LoginPage() {
             Sekar POS <span className="text-emerald-400">Retail v2.0</span>
           </h1>
           <p className="text-xs text-slate-400">
-            Sistem Kasir & Inventory Multi-Cabang AGUNG AI SOFTWARE HOUSE
+            Sistem Kasir & Inventory Multi-Cabang AGUNG SOFTWARE HOUSE
           </p>
         </div>
 
