@@ -120,8 +120,13 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const formattedName = typeof body.name === 'string' ? body.name.trim().toUpperCase() : body.name;
+    const formattedSku = typeof body.sku === 'string' ? body.sku.trim().toUpperCase() : body.sku;
+
     const validated = createProductSchema.parse({
       ...body,
+      name: formattedName,
+      sku: formattedSku,
       costPrice: Number(body.costPrice),
       sellingPrice: Number(body.sellingPrice),
       minStockAlert: body.minStockAlert ? Number(body.minStockAlert) : 5,
@@ -181,7 +186,7 @@ export async function POST(req: NextRequest) {
         // Create Master Product
         const product = await tx.product.create({
           data: {
-            name,
+            name: name.toUpperCase(),
             barcode,
             sku,
             costPrice,

@@ -194,7 +194,7 @@ export default function MasterProductsPage() {
     try {
       setIsSubmitting(true);
       const payload = {
-        name: nameInput,
+        name: nameInput.trim().toUpperCase(),
         barcode: barcodeInput,
         sku: skuInput,
         categoryId: payloadCategoryId,
@@ -466,13 +466,17 @@ export default function MasterProductsPage() {
 
               {/* Product Name */}
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Nama Produk Master</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Nama Produk Master <span className="text-rose-400">*</span>
+                  <span className="text-[10px] text-slate-400 ml-2 font-normal">(Wajib huruf kapital)</span>
+                </label>
                 <input
                   type="text"
-                  placeholder="Contoh: Kopi Susu Gula Aren 250ml"
+                  required
+                  placeholder="CONTOH: KOPI SUSU GULA AREN 250ML"
                   value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-amber-500"
+                  onChange={(e) => setNameInput(e.target.value.toUpperCase())}
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm uppercase placeholder:normal-case focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none font-medium transition-all"
                 />
               </div>
 
