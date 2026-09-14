@@ -102,6 +102,7 @@ export async function GET(req: NextRequest) {
                 barcode: true,
                 sku: true,
                 unit: true,
+                costPrice: true,
               },
             },
           },
@@ -114,6 +115,7 @@ export async function GET(req: NextRequest) {
 
     let totalRevenue = 0;
     let totalDiscount = 0;
+    let totalCogs = 0;
     const totalTransactions = rawTransactions.length;
 
     const formattedTransactions = rawTransactions.map((tx) => {
@@ -122,8 +124,34 @@ export async function GET(req: NextRequest) {
       const pointDiscountNum = Number(tx.pointDiscount);
       const totalDisc = discountAmountNum + pointDiscountNum;
 
+      let txCogs = 0;
+
+      const formattedItems = tx.items.map((item) => {
+        const itemCostPrice = Number(item.costPrice || item.product?.costPrice || 0);
+        const itemSellingPrice = Number(item.sellingPrice || 0);
+        const itemSubtotal = Number(item.subtotal || 0);
+        const itemTotalCogs = itemCostPrice * item.quantity;
+
+        txCogs += itemTotalCogs;
+
+        return {
+          id: item.id,
+          quantity: item.quantity,
+          costPrice: itemCostPrice,
+          sellingPrice: itemSellingPrice,
+          subtotal: itemSubtotal,
+          totalCogs: itemTotalCogs,
+          netProfit: itemSubtotal - itemTotalCogs,
+          product: item.product,
+        };
+      });
+
+      const txNetProfit = finalAmountNum - txCogs;
+      const txProfitMargin = finalAmountNum > 0 ? (txNetProfit / finalAmountNum) * 100 : 0;
+
       totalRevenue += finalAmountNum;
       totalDiscount += totalDisc;
+      totalCogs += txCogs;
 
       const formattedCashier = tx.cashier
         ? {
@@ -144,15 +172,6 @@ export async function GET(req: NextRequest) {
           }
         : null;
 
-      const formattedItems = tx.items.map((item) => ({
-        id: item.id,
-        quantity: item.quantity,
-        costPrice: Number(item.costPrice),
-        sellingPrice: Number(item.sellingPrice),
-        subtotal: Number(item.subtotal),
-        product: item.product,
-      }));
-
       return {
         id: tx.id,
         invoiceNo: tx.invoiceNo,
@@ -169,6 +188,9 @@ export async function GET(req: NextRequest) {
         changeAmount: Number(tx.changeAmount),
         paymentMethod: tx.paymentMethod,
         pointsEarned: tx.pointsEarned,
+        totalCogs: txCogs,
+        netProfit: txNetProfit,
+        profitMargin: Number(txProfitMargin.toFixed(2)),
         createdAt: tx.createdAt.toISOString(),
         branch: tx.branch,
         cashier: formattedCashier,
@@ -178,6 +200,8 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const netProfit = totalRevenue - totalCogs;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
     const averageBasketSize = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
 
     return NextResponse.json({
@@ -187,6 +211,9 @@ export async function GET(req: NextRequest) {
         totalDiscount,
         totalTransactions,
         averageBasketSize,
+        totalCogs,
+        netProfit,
+        profitMargin: Number(profitMargin.toFixed(2)),
       },
       transactions: formattedTransactions,
     });

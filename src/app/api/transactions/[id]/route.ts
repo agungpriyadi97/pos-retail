@@ -53,6 +53,7 @@ export async function GET(
                 barcode: true,
                 sku: true,
                 unit: true,
+                costPrice: true,
               },
             },
           },
@@ -86,14 +87,31 @@ export async function GET(
         }
       : null;
 
-    const formattedItems = tx.items.map((item) => ({
-      id: item.id,
-      quantity: item.quantity,
-      costPrice: Number(item.costPrice),
-      sellingPrice: Number(item.sellingPrice),
-      subtotal: Number(item.subtotal),
-      product: item.product,
-    }));
+    let txCogs = 0;
+
+    const formattedItems = tx.items.map((item) => {
+      const itemCostPrice = Number(item.costPrice || item.product?.costPrice || 0);
+      const itemSellingPrice = Number(item.sellingPrice || 0);
+      const itemSubtotal = Number(item.subtotal || 0);
+      const itemTotalCogs = itemCostPrice * item.quantity;
+
+      txCogs += itemTotalCogs;
+
+      return {
+        id: item.id,
+        quantity: item.quantity,
+        costPrice: itemCostPrice,
+        sellingPrice: itemSellingPrice,
+        subtotal: itemSubtotal,
+        totalCogs: itemTotalCogs,
+        netProfit: itemSubtotal - itemTotalCogs,
+        product: item.product,
+      };
+    });
+
+    const finalAmountNum = Number(tx.finalAmount);
+    const txNetProfit = finalAmountNum - txCogs;
+    const txProfitMargin = finalAmountNum > 0 ? (txNetProfit / finalAmountNum) * 100 : 0;
 
     const formattedTransaction = {
       id: tx.id,
@@ -106,11 +124,14 @@ export async function GET(
       pointsUsed: tx.pointsUsed,
       pointDiscount: Number(tx.pointDiscount),
       totalDiscount: Number(tx.discountAmount) + Number(tx.pointDiscount),
-      finalAmount: Number(tx.finalAmount),
+      finalAmount: finalAmountNum,
       paidAmount: Number(tx.paidAmount),
       changeAmount: Number(tx.changeAmount),
       paymentMethod: tx.paymentMethod,
       pointsEarned: tx.pointsEarned,
+      totalCogs: txCogs,
+      netProfit: txNetProfit,
+      profitMargin: Number(txProfitMargin.toFixed(2)),
       createdAt: tx.createdAt.toISOString(),
       branch: tx.branch,
       cashier: formattedCashier,

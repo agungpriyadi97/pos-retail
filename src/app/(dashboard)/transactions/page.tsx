@@ -22,6 +22,9 @@ import {
   Building2,
   ChevronRight,
   Clock,
+  PieChart,
+  Percent,
+  Coins,
 } from 'lucide-react';
 
 interface TransactionItem {
@@ -30,6 +33,8 @@ interface TransactionItem {
   costPrice: number;
   sellingPrice: number;
   subtotal: number;
+  totalCogs?: number;
+  netProfit?: number;
   product: {
     id: string;
     name: string;
@@ -55,6 +60,9 @@ interface TransactionData {
   changeAmount: number;
   paymentMethod: 'CASH' | 'QRIS' | 'TRANSFER' | 'DEBIT';
   pointsEarned: number;
+  totalCogs?: number;
+  netProfit?: number;
+  profitMargin?: number;
   createdAt: string;
   branch: {
     id: string;
@@ -89,6 +97,9 @@ interface SummaryMetrics {
   totalDiscount: number;
   totalTransactions: number;
   averageBasketSize: number;
+  totalCogs?: number;
+  netProfit?: number;
+  profitMargin?: number;
 }
 
 type PeriodFilter = 'day' | 'week' | 'month' | 'year' | 'custom';
@@ -107,6 +118,9 @@ export default function TransactionsPage() {
     totalDiscount: 0,
     totalTransactions: 0,
     averageBasketSize: 0,
+    totalCogs: 0,
+    netProfit: 0,
+    profitMargin: 0,
   });
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -165,6 +179,9 @@ export default function TransactionsPage() {
             totalDiscount: 0,
             totalTransactions: 0,
             averageBasketSize: 0,
+            totalCogs: 0,
+            netProfit: 0,
+            profitMargin: 0,
           }
         );
       } else {
@@ -184,7 +201,6 @@ export default function TransactionsPage() {
 
   const handleOpenReceipt = async (tx: TransactionData) => {
     try {
-      // Fetch fresh detail to ensure all items are populated
       const res = await fetch(`/api/transactions/${tx.id}`);
       const data = await res.json();
       if (data.success && data.transaction) {
@@ -274,10 +290,10 @@ export default function TransactionsPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide">
-                Riwayat Transaksi
+                Riwayat Transaksi & Laba Bersih
               </h1>
               <p className="text-xs sm:text-sm text-slate-400">
-                Pantau seluruh rekapitulasi penjualan, diskon, dan transaksi kasir secara real-time.
+                Pantau omzet kotor, modal HPP (COGS), dan untung bersih per periode secara presisi.
               </p>
             </div>
           </div>
@@ -371,16 +387,16 @@ export default function TransactionsPage() {
           )}
         </div>
 
-        {/* 4 Summary Metrics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Total Omzet */}
+        {/* 5 Enhanced Summary Metrics Cards (Revenue, COGS, Net Profit, Basket Size & Count) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Card 1: Total Omzet Kotor */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
               <DollarSign className="w-16 h-16 text-emerald-400" />
             </div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Total Omzet
+                Omzet Kotor
               </span>
               <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
                 <DollarSign className="w-4 h-4" />
@@ -390,11 +406,56 @@ export default function TransactionsPage() {
               {formatCurrency(summary.totalRevenue)}
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              Pendapatan bersih periode ini
+              Total pendapatan penjualan
             </div>
           </div>
 
-          {/* Card 2: Total Transaksi */}
+          {/* Card 2: Total Modal HPP (COGS) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+              <Coins className="w-16 h-16 text-amber-400" />
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Total Modal (HPP)
+              </span>
+              <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                <Coins className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
+              {formatCurrency(summary.totalCogs || 0)}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1">
+              Beban Pokok Penjualan (COGS)
+            </div>
+          </div>
+
+          {/* Card 3: Untung Bersih (Net Profit) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden group bg-gradient-to-br from-slate-900 via-slate-900 to-teal-950/40">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+              <PieChart className="w-16 h-16 text-teal-400" />
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Untung Bersih (Laba)
+              </span>
+              <div className="p-2 bg-teal-500/10 text-teal-400 rounded-xl border border-teal-500/20">
+                <PieChart className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-teal-300 font-mono">
+              {formatCurrency(summary.netProfit || 0)}
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] mt-1">
+              <span className="text-slate-400">Margin:</span>
+              <span className="font-bold text-teal-400 font-mono bg-teal-500/10 border border-teal-500/30 px-1.5 py-0.5 rounded">
+                +{summary.profitMargin || 0}%
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Total Transaksi */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
               <ShoppingBag className="w-16 h-16 text-sky-400" />
@@ -411,18 +472,18 @@ export default function TransactionsPage() {
               {summary.totalTransactions.toLocaleString('id-ID')} <span className="text-sm font-normal text-slate-400">Struk</span>
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              Jumlah struk yang diterbitkan
+              Diskon Poin: {formatCurrency(summary.totalDiscount)}
             </div>
           </div>
 
-          {/* Card 3: Rata-rata Keranjang */}
+          {/* Card 5: Rata-rata Keranjang */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
               <TrendingUp className="w-16 h-16 text-indigo-400" />
             </div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Rata-Rata Keranjang
+                Rata-Rata Basket
               </span>
               <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
                 <TrendingUp className="w-4 h-4" />
@@ -432,28 +493,7 @@ export default function TransactionsPage() {
               {formatCurrency(summary.averageBasketSize)}
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              Nilai transaksi rata-rata
-            </div>
-          </div>
-
-          {/* Card 4: Total Diskon Poin */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
-              <Tag className="w-16 h-16 text-rose-400" />
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Total Diskon Poin
-              </span>
-              <div className="p-2 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20">
-                <Tag className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-rose-400 font-mono">
-              {formatCurrency(summary.totalDiscount)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              Potongan harga & tukar poin
+              Nilai per transaksi
             </div>
           </div>
         </div>
@@ -504,9 +544,10 @@ export default function TransactionsPage() {
                       <th className="py-3 px-4">Tanggal / Waktu</th>
                       <th className="py-3 px-4">Kasir</th>
                       <th className="py-3 px-4">Member</th>
-                      <th className="py-3 px-4">Metode Bayar</th>
-                      <th className="py-3 px-4 text-right">Diskon</th>
-                      <th className="py-3 px-4 text-right">Total Akhir</th>
+                      <th className="py-3 px-4">Metode</th>
+                      <th className="py-3 px-4 text-right">Modal (HPP)</th>
+                      <th className="py-3 px-4 text-right">Omzet Akhir</th>
+                      <th className="py-3 px-4 text-right">Laba Bersih</th>
                       <th className="py-3 px-4 text-center">Aksi</th>
                     </tr>
                   </thead>
@@ -535,11 +576,17 @@ export default function TransactionsPage() {
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           {getPaymentBadge(tx.paymentMethod)}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono text-rose-400">
-                          {tx.totalDiscount > 0 ? `-${formatCurrency(tx.totalDiscount)}` : 'Rp 0'}
+                        <td className="py-3.5 px-4 text-right font-mono text-amber-300/90">
+                          {formatCurrency(tx.totalCogs || 0)}
                         </td>
                         <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 text-sm">
                           {formatCurrency(tx.finalAmount)}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono font-bold text-teal-300 text-sm">
+                          <div>{formatCurrency(tx.netProfit || 0)}</div>
+                          <div className="text-[10px] text-teal-400 font-normal">
+                            ({tx.profitMargin || 0}%)
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           <button
@@ -575,22 +622,20 @@ export default function TransactionsPage() {
                         <span className="text-slate-200 font-medium">{tx.cashier?.fullName || 'Kasir'}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 block text-[10px]">Pelanggan Member</span>
-                        <span className="text-emerald-400 font-medium">
-                          {tx.member ? tx.member.fullName : 'Non-Member'}
-                        </span>
+                        <span className="text-slate-500 block text-[10px]">Modal (HPP)</span>
+                        <span className="text-amber-300 font-mono">{formatCurrency(tx.totalCogs || 0)}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 block text-[10px]">Diskon</span>
-                        <span className="text-rose-400 font-mono">
-                          {tx.totalDiscount > 0 ? `-${formatCurrency(tx.totalDiscount)}` : 'Rp 0'}
+                        <span className="text-slate-500 block text-[10px]">Untung Bersih</span>
+                        <span className="text-teal-300 font-mono font-bold">
+                          {formatCurrency(tx.netProfit || 0)} ({tx.profitMargin || 0}%)
                         </span>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-slate-500 block">Total Tagihan</span>
+                        <span className="text-[10px] text-slate-500 block">Total Omzet</span>
                         <span className="font-mono font-bold text-emerald-400 text-base">
                           {formatCurrency(tx.finalAmount)}
                         </span>

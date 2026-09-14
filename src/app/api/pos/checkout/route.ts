@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        const sellingPriceNum = Number(product.sellingPrice);
-        const costPriceNum = Number(product.costPrice);
+        const sellingPriceNum = Number(product.sellingPrice || 0);
+        const costPriceNum = Number(product.costPrice || 0);
         const itemSubtotal = sellingPriceNum * item.quantity;
         subtotalNum += itemSubtotal;
 
