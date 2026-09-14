@@ -67,6 +67,7 @@ model Branch {
   address     String?
   phone       String?
   isWarehouse Boolean  @default(false)
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
