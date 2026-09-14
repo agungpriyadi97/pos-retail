@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
     const branchId = searchParams.get('branchId');
+    const cashierId = searchParams.get('cashierId');
     const paymentMethod = searchParams.get('paymentMethod');
-    const cashierIdParam = searchParams.get('cashierId');
 
     // 1. Authenticate Session & Extract Role
     const cookieStore = cookies();
@@ -39,78 +39,93 @@ export async function GET(req: NextRequest) {
       if (dbUser) sessionUser = dbUser;
     }
 
+    // 2. Calculate Date Range (Asia/Jakarta & UTC boundary safe)
     const now = new Date();
-    let start: Date;
-    let end: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    let startDate = new Date();
+    let endDate = new Date();
 
-    switch (period) {
-      case 'week': {
-        const d = new Date(now);
-        d.setDate(d.getDate() - 6);
-        start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
-        break;
+    if (period === 'day') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else if (period === 'week') {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    } else if (period === 'custom') {
+      if (startDateParam) {
+        const [y, m, d] = startDateParam.split('-').map(Number);
+        startDate = new Date(y, m - 1, d, 0, 0, 0, 0);
+      } else {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       }
-      case 'month':
-        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        break;
-      case 'year':
-        start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-        break;
-      case 'custom':
-        if (startDateParam) {
-          const [y, m, d] = startDateParam.split('-').map(Number);
-          start = new Date(y, m - 1, d, 0, 0, 0, 0);
-        } else {
-          start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        }
-        if (endDateParam) {
-          const [y, m, d] = endDateParam.split('-').map(Number);
-          end = new Date(y, m - 1, d, 23, 59, 59, 999);
-        }
-        break;
-      case 'day':
-      default:
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        break;
+      if (endDateParam) {
+        const [y, m, d] = endDateParam.split('-').map(Number);
+        endDate = new Date(y, m - 1, d, 23, 59, 59, 999);
+      } else {
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      }
     }
 
+    // 3. Construct Prisma whereClause
     const whereClause: any = {
       createdAt: {
-        gte: start,
-        lte: end,
+        gte: startDate,
+        lte: endDate,
       },
     };
 
-    // 2. Apply Branch Filter
-    if (branchId && branchId !== 'ALL' && branchId !== '') {
+    // Branch filter: apply only if not empty and not 'ALL' / 'all'
+    if (
+      branchId &&
+      branchId.toLowerCase() !== 'all' &&
+      branchId !== 'undefined' &&
+      branchId !== ''
+    ) {
       whereClause.branchId = branchId;
     }
 
-    // 3. Apply Payment Method Filter
-    if (paymentMethod && paymentMethod !== 'ALL' && paymentMethod !== '') {
+    // Payment Method filter: apply only if valid enum value
+    if (
+      paymentMethod &&
+      paymentMethod.toLowerCase() !== 'all' &&
+      paymentMethod !== 'Semua Pembayaran' &&
+      paymentMethod !== 'undefined' &&
+      paymentMethod !== ''
+    ) {
       if (Object.values(PaymentMethod).includes(paymentMethod as PaymentMethod)) {
         whereClause.paymentMethod = paymentMethod as PaymentMethod;
       }
     }
 
-    // 4. Apply RBAC Scoping on Cashier/User
-    const isOwner = sessionUser?.role === 'ADMIN_OWNER' || sessionUser?.role === 'OWNER';
+    // Cashier filter & RBAC scoping
+    const isOwner =
+      !sessionUser ||
+      sessionUser.role === 'ADMIN_OWNER' ||
+      sessionUser.role === 'OWNER';
 
     if (isOwner) {
-      // Owner sees ALL transactions across all users. If a specific cashierId filter parameter is passed, filter by it.
-      if (cashierIdParam && cashierIdParam !== 'ALL' && cashierIdParam !== '') {
-        whereClause.cashierId = cashierIdParam;
+      // Owner sees ALL cashiers' transactions by default.
+      // If a specific cashierId query param is passed and valid, filter by it.
+      if (
+        cashierId &&
+        cashierId.toLowerCase() !== 'all' &&
+        cashierId !== 'undefined' &&
+        cashierId !== ''
+      ) {
+        whereClause.cashierId = cashierId;
       }
     } else {
       // Cashier role: restrict to session user's transactions only
-      if (sessionUser?.id) {
-        whereClause.cashierId = sessionUser.id;
-      }
+      whereClause.cashierId = sessionUser.id;
     }
 
-    // 5. Fetch Transactions with full relations
+    // 4. Query Database
     const rawTransactions = await prisma.transaction.findMany({
       where: whereClause,
       include: {
@@ -158,7 +173,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // 6. Fetch Cashiers List (For Owner Filter Dropdown)
+    // 5. Fetch Cashiers List (for Owner Filter Dropdown)
     let cashiersList: any[] = [];
     if (isOwner) {
       cashiersList = await prisma.user.findMany({
@@ -174,9 +189,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // 6. Calculate Financial Aggregates
     let totalRevenue = 0;
-    let totalDiscount = 0;
     let totalCogs = 0;
+    let totalDiscount = 0;
     const totalTransactions = rawTransactions.length;
 
     const formattedTransactions = rawTransactions.map((tx) => {
@@ -188,7 +204,7 @@ export async function GET(req: NextRequest) {
       let txCogs = 0;
 
       const formattedItems = tx.items.map((item) => {
-        const itemCostPrice = Number(item.costPrice || item.product?.costPrice || 0);
+        const itemCostPrice = Number(item.costPrice ?? item.product?.costPrice ?? 0);
         const itemSellingPrice = Number(item.sellingPrice || 0);
         const itemSubtotal = Number(item.subtotal || 0);
         const itemTotalCogs = itemCostPrice * item.quantity;
@@ -235,6 +251,7 @@ export async function GET(req: NextRequest) {
         : null;
 
       return {
+        ...tx,
         id: tx.id,
         invoiceNo: tx.invoiceNo,
         branchId: tx.branchId,
@@ -251,8 +268,11 @@ export async function GET(req: NextRequest) {
         paymentMethod: tx.paymentMethod,
         pointsEarned: tx.pointsEarned,
         totalCogs: txCogs,
+        txCost: txCogs,
         netProfit: txNetProfit,
+        txProfit: txNetProfit,
         profitMargin: Number(txProfitMargin.toFixed(2)),
+        profitPercentage: Number(txProfitMargin.toFixed(2)),
         createdAt: tx.createdAt.toISOString(),
         branch: tx.branch,
         cashier: formattedCashier,
@@ -264,29 +284,31 @@ export async function GET(req: NextRequest) {
 
     const netProfit = totalRevenue - totalCogs;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-    const averageBasketSize = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+    const averageBasketSize = totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0;
 
     return NextResponse.json({
       success: true,
       summary: {
         totalRevenue,
-        totalDiscount,
-        totalTransactions,
-        averageBasketSize,
+        totalCost: totalCogs,
         totalCogs,
         netProfit,
         profitMargin: Number(profitMargin.toFixed(2)),
+        totalTransactions,
+        totalDiscount,
+        averageBasketSize,
       },
       transactions: formattedTransactions,
       cashiers: cashiersList,
-      userRole: sessionUser?.role || 'CASHIER',
+      userRole: sessionUser?.role || 'ADMIN_OWNER',
     });
   } catch (error: any) {
     console.error('Error fetching transactions:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Gagal mengambil data transaksi.',
+        error: 'Gagal mengambil riwayat transaksi',
+        details: error.message,
       },
       { status: 500 }
     );

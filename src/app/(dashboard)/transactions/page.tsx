@@ -181,17 +181,16 @@ export default function TransactionsPage() {
         setTransactions(data.transactions || []);
         if (data.cashiers) setCashiersList(data.cashiers);
         if (data.userRole) setUserRole(data.userRole);
-        setSummary(
-          data.summary || {
-            totalRevenue: 0,
-            totalDiscount: 0,
-            totalTransactions: 0,
-            averageBasketSize: 0,
-            totalCogs: 0,
-            netProfit: 0,
-            profitMargin: 0,
-          }
-        );
+        const sum = data.summary || {};
+        setSummary({
+          totalRevenue: sum.totalRevenue || 0,
+          totalDiscount: sum.totalDiscount || 0,
+          totalTransactions: sum.totalTransactions || 0,
+          averageBasketSize: sum.averageBasketSize || 0,
+          totalCogs: sum.totalCogs ?? sum.totalCost ?? 0,
+          netProfit: sum.netProfit || 0,
+          profitMargin: sum.profitMargin || 0,
+        });
       } else {
         setError(data.error || 'Gagal memuat data transaksi');
       }
