@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import ThemeToggle from '@/components/layout/ThemeToggle';
 import {
   ShoppingCart,
   Receipt,
@@ -257,13 +258,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased transition-colors duration-200">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between shadow-lg">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between shadow-sm dark:shadow-lg transition-colors">
         <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-1.5 sm:p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white shrink-0"
+            className="md:hidden p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0"
             aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -273,42 +274,45 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Store className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="font-bold text-xs sm:text-base leading-tight text-white tracking-wide truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[260px] md:max-w-[340px]">
+              <h1 className="font-bold text-xs sm:text-base leading-tight text-slate-900 dark:text-white tracking-wide truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[260px] md:max-w-[340px]">
                 {storeName}
               </h1>
-              <p className="text-[9px] sm:text-xs text-slate-400 truncate hidden xs:block">AGUNG AI SOFTWARE HOUSE</p>
+              <p className="text-[9px] sm:text-xs text-slate-500 dark:text-slate-400 truncate hidden xs:block">AGUNG AI SOFTWARE HOUSE</p>
             </div>
           </div>
         </div>
 
-        {/* Branch Switcher & User Profile Dropdown */}
+        {/* Branch Switcher & Theme Toggle & User Profile Dropdown */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          <div className="flex items-center gap-1 sm:gap-2 bg-slate-800/80 border border-slate-700/60 rounded-xl px-1.5 sm:px-3 py-1 sm:py-1.5 text-xs">
-            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-400 hidden lg:inline">Cabang:</span>
+          <div className="flex items-center gap-1 sm:gap-2 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-xl px-1.5 sm:px-3 py-1 sm:py-1.5 text-xs">
+            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="text-slate-500 dark:text-slate-400 hidden lg:inline">Cabang:</span>
             <select
               value={selectedBranchId}
               onChange={handleBranchChange}
-              className="bg-transparent text-white font-medium focus:outline-none cursor-pointer max-w-[85px] sm:max-w-[180px] truncate text-[11px] sm:text-xs"
+              className="bg-transparent text-slate-800 dark:text-white font-medium focus:outline-none cursor-pointer max-w-[85px] sm:max-w-[180px] truncate text-[11px] sm:text-xs"
             >
               {branches.map((b) => (
-                <option key={b.id} value={b.id} className="bg-slate-900 text-white">
+                <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                   {b.name} {b.isWarehouse ? '(Gudang)' : ''}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Sun / Moon Theme Toggle */}
+          <ThemeToggle />
+
           {/* User Profile Menu & Logout */}
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl px-2 sm:px-3 py-1 sm:py-1.5 text-xs text-slate-200 transition"
+              className="flex items-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl px-2 sm:px-3 py-1 sm:py-1.5 text-xs text-slate-800 dark:text-slate-200 transition"
             >
               {userSession?.role === 'ADMIN_OWNER' ? (
-                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
               ) : (
-                <UserCheck className="w-4 h-4 text-teal-400 shrink-0" />
+                <UserCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
               )}
               <span className="font-semibold hidden sm:inline max-w-[100px] truncate">
                 {userSession ? userSession.fullName.split(' ')[0] : 'POS'}
@@ -316,8 +320,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <span
                 className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md hidden lg:inline ${
                   userSession?.role === 'ADMIN_OWNER'
-                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                    : 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    : 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/30'
                 }`}
               >
                 {userSession?.role === 'ADMIN_OWNER' ? 'OWNER' : 'KASIR'}
@@ -326,12 +330,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1">
-                <div className="p-2 border-b border-slate-800">
-                  <div className="font-bold text-xs text-white">
+              <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1">
+                <div className="p-2 border-b border-slate-200 dark:border-slate-800">
+                  <div className="font-bold text-xs text-slate-900 dark:text-white">
                     {userSession?.fullName || 'Pengguna POS'}
                   </div>
-                  <div className="text-[10px] text-emerald-400 font-mono">
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
                     Role: {userSession?.role || 'CASHIER'}
                   </div>
                 </div>
@@ -342,15 +346,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     setTargetUsername(userSession?.username === 'owner' ? 'kasir1' : 'owner');
                     setIsSwitchModalOpen(true);
                   }}
-                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 rounded-xl transition"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
                 >
-                  <KeyRound className="w-4 h-4 text-amber-400" />
+                  <KeyRound className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                   <span>Ganti Akun (Otorisasi Password)</span>
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 rounded-xl transition font-semibold"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-xl transition font-semibold"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Keluar / Logout</span>
@@ -363,8 +367,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 bg-slate-900/60 border-r border-slate-800/80 p-4 space-y-2 shrink-0">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 mb-2">
+        <aside className="hidden md:flex flex-col w-64 bg-white/80 dark:bg-slate-900/60 border-r border-slate-200 dark:border-slate-800/80 p-4 space-y-2 shrink-0 transition-colors">
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mb-2">
             Navigasi Utama
           </div>
           {visibleNavItems.map((item) => {
@@ -376,13 +380,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-300 dark:border-slate-700/80 shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
                 }`}
               >
                 <div
                   className={`p-1.5 rounded-lg text-slate-950 ${
-                    isActive ? item.color : 'bg-slate-800 text-slate-300'
+                    isActive ? item.color : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -397,15 +401,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex">
             <div className="fixed inset-0" onClick={() => setMobileMenuOpen(false)} />
-            <div className="relative z-10 w-72 max-w-[80vw] bg-slate-900 border-r border-slate-800 p-4 space-y-3 flex flex-col h-full overflow-y-auto shadow-2xl">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="relative z-10 w-72 max-w-[80vw] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 space-y-3 flex flex-col h-full overflow-y-auto shadow-2xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Store className="w-4 h-4 text-emerald-400" />
-                  <span className="font-bold text-slate-200 text-sm truncate">{storeName}</span>
+                  <Store className="w-4 h-4 text-emerald-500" />
+                  <span className="font-bold text-slate-900 dark:text-slate-200 text-sm truncate">{storeName}</span>
                 </div>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white bg-slate-800"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -421,32 +425,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${
                         isActive
-                          ? 'bg-slate-800 text-emerald-400 border border-slate-700'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                          ? 'bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-300 dark:border-slate-700'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/40'
                       }`}
                     >
-                      <Icon className="w-5 h-5 text-emerald-400" />
+                      <Icon className="w-5 h-5 text-emerald-500" />
                       <span>{item.name}</span>
                     </Link>
                   );
                 })}
               </div>
 
-              <div className="pt-4 border-t border-slate-800 space-y-2 shrink-0">
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0">
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     setIsSwitchModalOpen(true);
                   }}
-                  className="flex items-center gap-3 px-3 py-2.5 w-full text-slate-300 font-semibold text-xs bg-slate-800 rounded-xl"
+                  className="flex items-center gap-3 px-3 py-2.5 w-full text-slate-700 dark:text-slate-300 font-semibold text-xs bg-slate-100 dark:bg-slate-800 rounded-xl"
                 >
-                  <KeyRound className="w-4 h-4 text-amber-400" />
+                  <KeyRound className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                   <span>Ganti Akun Sesi</span>
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 px-3 py-2.5 w-full text-rose-400 font-semibold text-xs hover:bg-rose-500/10 rounded-xl transition"
+                  className="flex items-center gap-3 px-3 py-2.5 w-full text-rose-600 dark:text-rose-400 font-semibold text-xs hover:bg-rose-500/10 rounded-xl transition"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Logout</span>
@@ -457,7 +461,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         )}
 
         {/* Main Content Body */}
-        <main className="w-full min-w-0 flex-1 overflow-x-hidden p-3 sm:p-6 bg-slate-950">
+        <main className="w-full min-w-0 flex-1 overflow-x-hidden p-3 sm:p-6 bg-slate-50 dark:bg-slate-950 transition-colors">
           {children}
         </main>
       </div>
