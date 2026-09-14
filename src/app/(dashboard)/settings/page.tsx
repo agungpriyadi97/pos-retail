@@ -25,6 +25,7 @@ import {
   Warehouse,
   Building,
   Trash2,
+  MoreVertical,
 } from 'lucide-react';
 
 interface Branch {
@@ -60,6 +61,8 @@ export default function SettingsPage() {
   const [isSubmittingBranch, setIsSubmittingBranch] = useState<boolean>(false);
   const [branchModalError, setBranchModalError] = useState<string | null>(null);
 
+  const [activeMenuBranchId, setActiveMenuBranchId] = useState<string | null>(null);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -67,6 +70,12 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSettings();
     fetchBranches();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenuBranchId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
   const fetchSettings = async () => {
@@ -591,39 +600,66 @@ export default function SettingsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleOpenEditBranch(b)}
-                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition flex items-center gap-1 text-[11px] font-medium"
-                              title="Edit Cabang"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Edit</span>
-                            </button>
+                        <td className="py-3.5 px-4 text-center relative" onClick={(e) => e.stopPropagation()}>
+                          {/* Trigger Button Titik Tiga */}
+                          <button
+                            type="button"
+                            onClick={() => setActiveMenuBranchId(activeMenuBranchId === b.id ? null : b.id)}
+                            className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors inline-flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-slate-700"
+                            aria-label="Menu Aksi"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
 
-                            <button
-                              onClick={() => handleToggleBranchStatus(b)}
-                              className={`p-1.5 rounded-lg border text-[11px] font-medium transition flex items-center gap-1 ${
-                                b.isActive
-                                  ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30'
-                                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                              }`}
-                              title={b.isActive ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}
-                            >
-                              <Power className="w-3.5 h-3.5" />
-                              <span>{b.isActive ? 'Nonaktifkan' : 'Aktifkan'}</span>
-                            </button>
+                          {/* Floating Dropdown Menu */}
+                          {activeMenuBranchId === b.id && (
+                            <div className="absolute right-4 top-12 z-30 w-44 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 backdrop-blur-md animate-in fade-in-0 zoom-in-95 text-left divide-y divide-slate-800/60">
+                              <div className="py-1">
+                                {/* Edit Option */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMenuBranchId(null);
+                                    handleOpenEditBranch(b);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>Edit Cabang</span>
+                                </button>
 
-                            <button
-                              onClick={() => handleDeleteBranch(b)}
-                              className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg transition flex items-center gap-1 text-[11px] font-medium"
-                              title="Hapus Cabang"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Hapus</span>
-                            </button>
-                          </div>
+                                {/* Toggle Active / Nonaktif Option */}
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setActiveMenuBranchId(null);
+                                    await handleToggleBranchStatus(b);
+                                  }}
+                                  className={`w-full px-3.5 py-2 text-xs font-medium flex items-center gap-2.5 hover:bg-slate-800 transition-colors ${
+                                    b.isActive ? 'text-amber-400 hover:text-amber-300' : 'text-emerald-400 hover:text-emerald-300'
+                                  }`}
+                                >
+                                  <Power className="w-3.5 h-3.5" />
+                                  <span>{b.isActive ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}</span>
+                                </button>
+                              </div>
+
+                              {/* Delete Option */}
+                              <div className="py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMenuBranchId(null);
+                                    handleDeleteBranch(b);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Hapus Cabang</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -666,38 +702,67 @@ export default function SettingsPage() {
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 relative" onClick={(e) => e.stopPropagation()}>
                       <span className="text-[11px] text-slate-500">
                         {b.isWarehouse ? 'Gudang Central' : 'Outlet Retail'}
                       </span>
-                      <div className="flex gap-2">
+
+                      {/* Mobile Three-Dot Menu */}
+                      <div>
                         <button
-                          onClick={() => handleOpenEditBranch(b)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 flex items-center gap-1"
+                          type="button"
+                          onClick={() => setActiveMenuBranchId(activeMenuBranchId === b.id ? null : b.id)}
+                          className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors inline-flex items-center justify-center focus:outline-none"
+                          aria-label="Menu Aksi"
                         >
-                          <Edit3 className="w-3 h-3 text-amber-400" />
-                          <span>Edit</span>
+                          <MoreVertical className="w-4 h-4" />
                         </button>
 
-                        <button
-                          onClick={() => handleToggleBranchStatus(b)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1 ${
-                            b.isActive
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                          }`}
-                        >
-                          <Power className="w-3 h-3" />
-                          <span>{b.isActive ? 'Nonaktifkan' : 'Aktifkan'}</span>
-                        </button>
+                        {activeMenuBranchId === b.id && (
+                          <div className="absolute right-0 bottom-10 z-30 w-44 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 text-left divide-y divide-slate-800/60">
+                            <div className="py-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveMenuBranchId(null);
+                                  handleOpenEditBranch(b);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Edit Cabang</span>
+                              </button>
 
-                        <button
-                          onClick={() => handleDeleteBranch(b)}
-                          className="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Hapus</span>
-                        </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  setActiveMenuBranchId(null);
+                                  await handleToggleBranchStatus(b);
+                                }}
+                                className={`w-full px-3.5 py-2 text-xs font-medium flex items-center gap-2.5 hover:bg-slate-800 transition-colors ${
+                                  b.isActive ? 'text-amber-400 hover:text-amber-300' : 'text-emerald-400 hover:text-emerald-300'
+                                }`}
+                              >
+                                <Power className="w-3.5 h-3.5" />
+                                <span>{b.isActive ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}</span>
+                              </button>
+                            </div>
+
+                            <div className="py-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveMenuBranchId(null);
+                                  handleDeleteBranch(b);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Hapus Cabang</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
