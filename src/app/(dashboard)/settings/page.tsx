@@ -550,10 +550,10 @@ export default function SettingsPage() {
           ) : (
             <>
               {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
+              <div className="hidden md:block overflow-x-auto min-h-[240px] pb-24">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                    <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider h-12">
                       <th className="py-3 px-4">Kode</th>
                       <th className="py-3 px-4">Nama Cabang</th>
                       <th className="py-3 px-4">Tipe</th>
@@ -565,7 +565,7 @@ export default function SettingsPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
                     {branches.map((b) => (
-                      <tr key={b.id} className="hover:bg-slate-800/40 transition">
+                      <tr key={b.id} className="hover:bg-slate-800/40 transition-colors h-14">
                         <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
                           {b.code}
                         </td>
@@ -600,66 +600,68 @@ export default function SettingsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-center relative" onClick={(e) => e.stopPropagation()}>
-                          {/* Trigger Button Titik Tiga */}
-                          <button
-                            type="button"
-                            onClick={() => setActiveMenuBranchId(activeMenuBranchId === b.id ? null : b.id)}
-                            className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors inline-flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-slate-700"
-                            aria-label="Menu Aksi"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+                            {/* Trigger Button Titik Tiga */}
+                            <button
+                              type="button"
+                              onClick={() => setActiveMenuBranchId(activeMenuBranchId === b.id ? null : b.id)}
+                              className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors inline-flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-slate-700"
+                              aria-label="Menu Aksi"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
 
-                          {/* Floating Dropdown Menu */}
-                          {activeMenuBranchId === b.id && (
-                            <div className="absolute right-4 top-12 z-30 w-44 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 backdrop-blur-md animate-in fade-in-0 zoom-in-95 text-left divide-y divide-slate-800/60">
-                              <div className="py-1">
-                                {/* Edit Option */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveMenuBranchId(null);
-                                    handleOpenEditBranch(b);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>Edit Cabang</span>
-                                </button>
+                            {/* Floating Dropdown Menu */}
+                            {activeMenuBranchId === b.id && (
+                              <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 backdrop-blur-md animate-in fade-in-0 zoom-in-95 text-left divide-y divide-slate-800/60">
+                                <div className="py-1">
+                                  {/* Edit Option */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuBranchId(null);
+                                      handleOpenEditBranch(b);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2.5 transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                                    <span>Edit Cabang</span>
+                                  </button>
 
-                                {/* Toggle Active / Nonaktif Option */}
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    setActiveMenuBranchId(null);
-                                    await handleToggleBranchStatus(b);
-                                  }}
-                                  className={`w-full px-3.5 py-2 text-xs font-medium flex items-center gap-2.5 hover:bg-slate-800 transition-colors ${
-                                    b.isActive ? 'text-amber-400 hover:text-amber-300' : 'text-emerald-400 hover:text-emerald-300'
-                                  }`}
-                                >
-                                  <Power className="w-3.5 h-3.5" />
-                                  <span>{b.isActive ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}</span>
-                                </button>
+                                  {/* Toggle Active / Nonaktif Option */}
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      setActiveMenuBranchId(null);
+                                      await handleToggleBranchStatus(b);
+                                    }}
+                                    className={`w-full px-3.5 py-2 text-xs font-medium flex items-center gap-2.5 hover:bg-slate-800 transition-colors ${
+                                      b.isActive ? 'text-amber-400 hover:text-amber-300' : 'text-emerald-400 hover:text-emerald-300'
+                                    }`}
+                                  >
+                                    <Power className="w-3.5 h-3.5" />
+                                    <span>{b.isActive ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}</span>
+                                  </button>
+                                </div>
+
+                                {/* Delete Option */}
+                                <div className="py-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuBranchId(null);
+                                      handleDeleteBranch(b);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Hapus Cabang</span>
+                                  </button>
+                                </div>
                               </div>
-
-                              {/* Delete Option */}
-                              <div className="py-1">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveMenuBranchId(null);
-                                    handleDeleteBranch(b);
-                                  }}
-                                  className="w-full px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Hapus Cabang</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
