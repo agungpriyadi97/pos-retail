@@ -164,7 +164,10 @@ export default function PosPage() {
       const res = await fetch(url.toString());
       const data = await res.json();
       if (data.success) {
-        setProducts(data.data);
+        setProducts(data.products || data.data || []);
+        if (data.branchId && (!branchId || branchId === 'all')) {
+          setBranchId(data.branchId);
+        }
       }
     } catch (err) {
       console.error('Failed to load products', err);

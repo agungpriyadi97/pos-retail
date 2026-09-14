@@ -21,9 +21,28 @@ const createProductSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const branchId = searchParams.get('branchId');
+    let targetBranchId = searchParams.get('branchId');
     const query = searchParams.get('query');
     const categoryId = searchParams.get('categoryId');
+
+    // 1. If branchId is missing, empty, 'all', or 'undefined', automatically fetch the FIRST ACTIVE branch
+    if (
+      !targetBranchId ||
+      targetBranchId === 'all' ||
+      targetBranchId === 'undefined' ||
+      targetBranchId === ''
+    ) {
+      const activeBranch =
+        (await (prisma.branch as any).findFirst({
+          where: { isActive: true, isWarehouse: false },
+          orderBy: { createdAt: 'asc' },
+        })) ||
+        (await (prisma.branch as any).findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+        }));
+      targetBranchId = activeBranch ? activeBranch.id : null;
+    }
 
     const whereClause: any = {};
     if (query) {
@@ -37,18 +56,19 @@ export async function GET(req: NextRequest) {
       whereClause.categoryId = categoryId;
     }
 
+    // 2. Query master products & join specifically with target branch's inventory stocks
     const products = await prisma.product.findMany({
       where: whereClause,
       include: {
         category: true,
-        stocks: branchId ? { where: { branchId } } : true,
+        stocks: targetBranchId ? { where: { branchId: targetBranchId } } : true,
       },
       orderBy: { name: 'asc' },
     });
 
-    const formatted = products.map((p: any) => {
-      const branchStock = branchId
-        ? p.stocks.find((s: any) => s.branchId === branchId)?.quantity || 0
+    const formattedProducts = products.map((p: any) => {
+      const branchStock = targetBranchId
+        ? (p.stocks.find((s: any) => s.branchId === targetBranchId)?.quantity ?? p.stocks[0]?.quantity ?? 0)
         : p.stocks.reduce((acc: number, s: any) => acc + s.quantity, 0);
 
       const cost = Number(p.costPrice);
@@ -69,11 +89,19 @@ export async function GET(req: NextRequest) {
         category: p.category ? p.category.name : 'Uncategorized',
         categoryId: p.categoryId,
         stock: branchStock,
+        branchId: targetBranchId,
+        currentBranchId: targetBranchId,
+        inventory: p.stocks,
         createdAt: p.createdAt,
       };
     });
 
-    return NextResponse.json({ success: true, data: formatted });
+    return NextResponse.json({
+      success: true,
+      branchId: targetBranchId,
+      products: formattedProducts,
+      data: formattedProducts,
+    });
   } catch (error: any) {
     console.error('Fetch Products Error:', error);
     return NextResponse.json(
